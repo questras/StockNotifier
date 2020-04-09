@@ -6,7 +6,7 @@ import 'package:html/dom.dart' as dom;
 
 class Stock {
   final String name;
-  final String price;
+  final double price;
 
   Stock({this.name, this.price});
 }
@@ -24,12 +24,19 @@ Future<List<Stock>> fetchStock() async {
     if (items[i].attributes.containsKey('class')) {
       if (items[i].attributes['class'] == 'colWalor textNowrap') {
         var name = items[i].text.trim();
-        var price = items[i+1].text.trim();
-        stocks.add(Stock(name: name, price: price));
+        var price = items[i + 1].text.trim();
+        stocks.add(Stock(name: name, price: formatToDouble(price)));
       }
     }
   }
 
-  print("Success!");
   return stocks;
+}
+
+double formatToDouble(String number) {
+  number = number.replaceFirst(RegExp(','), '.');
+  number = number.replaceFirst(RegExp(' '), '');
+  number = number.replaceFirst(RegExp('\xa0'), '');
+
+  return double.parse(number);
 }
