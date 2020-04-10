@@ -1,8 +1,10 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:validators/validators.dart';
 
 import 'package:stocknotifier/services/stock.dart' as stock;
+import 'package:stocknotifier/services/sharedPreferencesHandler.dart';
+import 'package:stocknotifier/screens/stockFavoriteListScreen.dart';
+import 'package:stocknotifier/components/listTiles.dart';
 
 class StockList extends StatefulWidget {
   @override
@@ -12,9 +14,8 @@ class StockList extends StatefulWidget {
 }
 
 class StockListState extends State<StockList> {
-  Future<List<stock.Stock>> _futureStockList;
-  final Map<String, stock.Stock> _savedStocks = Map<String, stock.Stock>();
-  final Map<String, double> _preferences = Map<String, double>();
+  Future<Map<String, stock.Stock>> _futureStockList;
+  Future<Set<String>> _futurePreferencesKeys;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
 
   @override
@@ -29,8 +30,9 @@ class StockListState extends State<StockList> {
     flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onSelectNotification: selectNotification);
 
-    // Loading stock prices.
+    // Loading stock prices and user preferences.
     _futureStockList = stock.fetchStock();
+    _futurePreferencesKeys = getPreferences();
   }
 
   @override
@@ -59,22 +61,25 @@ class StockListState extends State<StockList> {
     );
   }
 
-  FutureBuilder<List<stock.Stock>> createStockList() {
-    return FutureBuilder<List<stock.Stock>>(
+  FutureBuilder<Map<String, stock.Stock>> createStockList() {
+    return FutureBuilder<Map<String, stock.Stock>>(
       future: _futureStockList,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          handleNotification(snapshot.data);
+//          handleNotification(snapshot.data);
 
           List<Widget> listTiles = new List<Widget>();
 
-          for (var element in snapshot.data) {
-            listTiles.add(listTileFromStock(element));
+          for (var name in snapshot.data.keys) {
+            final price = snapshot.data[name].price;
+
+            listTiles.add(stockListTile(name, price, _onFavoriteTap));
             listTiles.add(Divider());
           }
 
           return ListView(children: listTiles);
-        } else if (snapshot.hasError) {
+        }
+        else if (snapshot.hasError) {
           return Text('$snapshot.error');
         }
         return CircularProgressIndicator();
@@ -82,88 +87,32 @@ class StockListState extends State<StockList> {
     );
   }
 
-  ListTile listTileFromStock(stock.Stock element) {
-    final bool alreadySaved = _savedStocks.containsKey(element.name);
-    return ListTile(
-      leading: Text(element.price.toString()),
-      title: Text(element.name),
-      trailing: Icon(
-        alreadySaved ? Icons.favorite : Icons.favorite_border,
-        color: alreadySaved ? Colors.red : null,
-      ),
-      onTap: () {
-        setState(() {
-          if (alreadySaved) {
-            _savedStocks.remove(element.name);
-            _preferences.remove(element.name);
-          } else {
-            _savedStocks[element.name] = element;
-            _preferences[element.name] = 0.0;
-          }
-        });
-      },
-    );
-  }
-
-  ListTile notificationPriceListTile(String stockName) {
-    return ListTile(
-      leading: Text("Notify me at:"),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Container(
-            width: 100.0,
-            child: TextFormField(
-              keyboardType: TextInputType.number,
-              initialValue: _preferences[stockName].toString(),
-              onChanged: (String number) {
-                if (isFloat(number)) {
-                  _preferences[stockName] = double.parse(number);
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+  void _onFavoriteTap(bool alreadySaved, String name) {
+    setState(() {
+      if (alreadySaved) {
+        preferencesRemove(name);
+        _futurePreferencesKeys = getPreferences();
+      } else {
+        preferencesSave(name, 0.0);
+        _futurePreferencesKeys = getPreferences();
+      }
+    });
   }
 
   void _pushSavedStocks() {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (BuildContext context) {
-      List<Widget> listTiles = new List<Widget>();
-
-      for (var key in _savedStocks.keys) {
-        var element = _savedStocks[key];
-
-        // Add tile with stock name and price.
-        listTiles.add(listTileFromStock(element));
-
-        // Add tile to change notification price.
-        listTiles.add(notificationPriceListTile(element.name));
-        listTiles.add(Divider());
-      }
-
-      return Scaffold(
-        appBar: AppBar(
-          title: Text('Saved stock'),
-        ),
-        body: ListView(
-          children: listTiles,
-        ),
-      );
-    }));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => StockFavoriteList()));
   }
 
-  void handleNotification(Iterable data) {
+  void handleNotification(Map<String, stock.Stock> data) async {
     List<String> satisfyingStocks = List<String>();
+
     // Send notification if price is satisfying
-    // according to preferences.
-    for (var element in data) {
-      if (_preferences.containsKey(element.name)) {
-        if (element.price <= _preferences[element.name]) {
-          satisfyingStocks.add(element.name);
-        }
+    Set<String> prefs = await getPreferences();
+    for (var key in prefs) {
+      double value = await preferencesRead(key);
+      if (data[key].price <= value) {
+        satisfyingStocks.add(key);
       }
     }
 
@@ -186,8 +135,8 @@ class StockListState extends State<StockList> {
     showDialog(
         context: context,
         builder: (_) => new AlertDialog(
-          title: Text("Stock prices lowered."),
-        ));
+              title: Text("Stock prices lowered."),
+            ));
   }
 
   showNotification(String message) async {
@@ -200,3 +149,6 @@ class StockListState extends State<StockList> {
         0, 'Stock price lowered!', message, platform);
   }
 }
+
+
+
