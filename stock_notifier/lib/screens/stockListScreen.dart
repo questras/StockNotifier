@@ -19,6 +19,7 @@ class _StockListState extends State<StockList> {
   Future<Map<String, stock.Stock>> _futureStockList;
   FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
   Timer _notificationTimer;
+  int _currentNotificationThreshold;
 
   @override
   void initState() {
@@ -32,7 +33,7 @@ class _StockListState extends State<StockList> {
     _flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onSelectNotification: _selectNotification);
 
-    setNotificationTimer();
+    _currentNotificationThreshold = 0;
   }
 
   @override
@@ -43,6 +44,8 @@ class _StockListState extends State<StockList> {
 
   @override
   Widget build(BuildContext context) {
+    setNotificationTimer();
+    print(_currentNotificationThreshold);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -144,12 +147,19 @@ class _StockListState extends State<StockList> {
     }
   }
 
+  /// Set notification timer to time specified in shared preference
+  /// or update it if notification threshold time was changed.
   void setNotificationTimer() async {
     final notificationThreshold = await notificationThresholdRead();
 
-    this._notificationTimer = Timer.periodic(
-        Duration(minutes: notificationThreshold),
-        (Timer t) => _handleNotification());
+    if (notificationThreshold != _currentNotificationThreshold) {
+      this._notificationTimer?.cancel();
+      this._notificationTimer = Timer.periodic(
+          Duration(minutes: notificationThreshold),
+              (Timer t) => _handleNotification());
+
+      _currentNotificationThreshold = notificationThreshold;
+    }
   }
 
   // When notification is selected.

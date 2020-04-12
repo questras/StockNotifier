@@ -1,6 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _SETTINGS_PREFERENCES = [];
+const _SETTINGS_PREFERENCES = ['notificationThreshold'];
 
 Future<double> preferencesRead(String key) async {
   final prefs = await SharedPreferences.getInstance();
