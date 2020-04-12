@@ -10,35 +10,35 @@ import 'package:stocknotifier/components/listTiles.dart';
 class StockList extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return StockListState();
+    return _StockListState();
   }
 }
 
-class StockListState extends State<StockList> {
+class _StockListState extends State<StockList> {
   Future<Map<String, stock.Stock>> _futureStockList;
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-  Timer notificationTimer;
+  FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
+  Timer _notificationTimer;
 
   @override
   void initState() {
     super.initState();
 
     // Initialization required to send notifications.
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    var android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    var ios = IOSInitializationSettings();
-    var initializationSettings = InitializationSettings(android, ios);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: selectNotification);
+    _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    final android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    final ios = IOSInitializationSettings();
+    final initializationSettings = InitializationSettings(android, ios);
+    _flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onSelectNotification: _selectNotification);
 
     // todo: comment -> Show notification every 10 minutes
-    notificationTimer =
-        Timer.periodic(Duration(minutes: 2), (Timer t) => handleNotification());
+    _notificationTimer =
+        Timer.periodic(Duration(minutes: 2), (Timer t) => _handleNotification());
   }
 
   @override
   void dispose() {
-    notificationTimer?.cancel();
+    _notificationTimer?.cancel();
     super.dispose();
   }
 
@@ -62,11 +62,11 @@ class StockListState extends State<StockList> {
           )
         ],
       ),
-      body: Center(child: this.createStockList()),
+      body: Center(child: this._createStockList()),
     );
   }
 
-  FutureBuilder<Map<String, stock.Stock>> createStockList() {
+  FutureBuilder<Map<String, stock.Stock>> _createStockList() {
     _futureStockList = stock.fetchStock();
     return FutureBuilder<Map<String, stock.Stock>>(
       future: _futureStockList,
@@ -106,7 +106,7 @@ class StockListState extends State<StockList> {
         context, MaterialPageRoute(builder: (context) => StockFavoriteList()));
   }
 
-  void handleNotification() async {
+  void _handleNotification() async {
     List<String> satisfyingStocks = List<String>();
     Map<String, stock.Stock> stockPrices = await stock.fetchStock();
 
@@ -136,7 +136,7 @@ class StockListState extends State<StockList> {
   }
 
   // When notification is selected.
-  Future selectNotification(String payload) async {
+  Future _selectNotification(String payload) async {
     showDialog(
         context: context,
         builder: (_) => new AlertDialog(
@@ -150,7 +150,7 @@ class StockListState extends State<StockList> {
     var ios = new IOSNotificationDetails();
     var platform = new NotificationDetails(android, ios);
 
-    await flutterLocalNotificationsPlugin.show(
+    await _flutterLocalNotificationsPlugin.show(
         0, 'Stock price lowered!', message, platform);
   }
 }
