@@ -45,7 +45,6 @@ class _StockListState extends State<StockList> {
   @override
   Widget build(BuildContext context) {
     setNotificationTimer();
-    print(_currentNotificationThreshold);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -62,16 +61,27 @@ class _StockListState extends State<StockList> {
               this._pushSavedStocks();
             },
           ),
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () {
-              this.setState(() {});
+          Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: Icon(Icons.refresh),
+                onPressed: () {
+                  this.setState(() {});
+                  _showSnackBar(context);
+                },
+              );
             },
           )
         ],
       ),
       body: Center(child: this._createStockList()),
     );
+  }
+
+  void _showSnackBar(BuildContext context) {
+    Scaffold.of(context).showSnackBar(SnackBar(
+      content: Text('Stock refreshed.'),
+    ));
   }
 
   FutureBuilder<Map<String, stock.Stock>> _createStockList() {
@@ -156,7 +166,7 @@ class _StockListState extends State<StockList> {
       this._notificationTimer?.cancel();
       this._notificationTimer = Timer.periodic(
           Duration(minutes: notificationThreshold),
-              (Timer t) => _handleNotification());
+          (Timer t) => _handleNotification());
 
       _currentNotificationThreshold = notificationThreshold;
     }
