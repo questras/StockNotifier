@@ -18,6 +18,7 @@ class StockList extends StatefulWidget {
 class _StockListState extends State<StockList> {
   Future<Map<String, stock.Stock>> _futureStockList;
   FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin;
+  final _scrollController = new ScrollController();
   Timer _notificationTimer;
   int _currentNotificationThreshold;
 
@@ -55,6 +56,13 @@ class _StockListState extends State<StockList> {
         ),
         title: Text('Stock prices'),
         actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.arrow_upward),
+            onPressed: () {
+              _scrollController.animateTo(
+                  0, duration: Duration(seconds: 1), curve: Curves.easeInOut);
+            },
+          ),
           IconButton(
             icon: Icon(Icons.list),
             onPressed: () {
@@ -99,8 +107,10 @@ class _StockListState extends State<StockList> {
             listTiles.add(Divider());
           }
 
-          return ListView(children: listTiles);
-        } else if (snapshot.hasError) {
+          return ListView(children: listTiles, controller: _scrollController,);
+        }
+        else
+        if (snapshot.hasError) {
           return Text('$snapshot.error');
         }
         return CircularProgressIndicator();
@@ -112,7 +122,8 @@ class _StockListState extends State<StockList> {
     setState(() {
       if (alreadySaved) {
         preferencesRemove(name);
-      } else {
+      }
+      else {
         preferencesSave(name, 0.0);
       }
     });
@@ -166,7 +177,7 @@ class _StockListState extends State<StockList> {
       this._notificationTimer?.cancel();
       this._notificationTimer = Timer.periodic(
           Duration(minutes: notificationThreshold),
-          (Timer t) => _handleNotification());
+              (Timer t) => _handleNotification());
 
       _currentNotificationThreshold = notificationThreshold;
     }
@@ -176,9 +187,10 @@ class _StockListState extends State<StockList> {
   Future _selectNotification(String payload) async {
     showDialog(
         context: context,
-        builder: (_) => new AlertDialog(
-              title: Text("Stock prices lowered."),
-            ));
+        builder: (_) =>
+        new AlertDialog(
+          title: Text("Stock prices lowered."),
+        ));
   }
 
   showNotification(String message) async {
