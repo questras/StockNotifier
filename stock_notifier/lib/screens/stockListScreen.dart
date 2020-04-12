@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:stocknotifier/services/stock.dart' as stock;
 import 'package:stocknotifier/services/sharedPreferencesHandler.dart';
 import 'package:stocknotifier/screens/stockFavoriteListScreen.dart';
+import 'package:stocknotifier/screens/settingsScreen.dart';
 import 'package:stocknotifier/components/listTiles.dart';
 
 class StockList extends StatefulWidget {
@@ -31,9 +32,7 @@ class _StockListState extends State<StockList> {
     _flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onSelectNotification: _selectNotification);
 
-    // todo: comment -> Show notification every 10 minutes
-    _notificationTimer =
-        Timer.periodic(Duration(minutes: 2), (Timer t) => _handleNotification());
+    setNotificationTimer();
   }
 
   @override
@@ -49,7 +48,7 @@ class _StockListState extends State<StockList> {
         leading: IconButton(
           icon: Icon(Icons.settings),
           onPressed: () {
-
+            this._pushSettings();
           },
         ),
         title: Text('Stock prices'),
@@ -88,8 +87,7 @@ class _StockListState extends State<StockList> {
           }
 
           return ListView(children: listTiles);
-        }
-        else if (snapshot.hasError) {
+        } else if (snapshot.hasError) {
           return Text('$snapshot.error');
         }
         return CircularProgressIndicator();
@@ -110,6 +108,11 @@ class _StockListState extends State<StockList> {
   void _pushSavedStocks() {
     Navigator.push(
         context, MaterialPageRoute(builder: (context) => StockFavoriteList()));
+  }
+
+  void _pushSettings() {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => SettingsScreen()));
   }
 
   void _handleNotification() async {
@@ -139,6 +142,14 @@ class _StockListState extends State<StockList> {
       message += '!';
       showNotification(message);
     }
+  }
+
+  void setNotificationTimer() async {
+    final notificationThreshold = await notificationThresholdRead();
+
+    this._notificationTimer = Timer.periodic(
+        Duration(minutes: notificationThreshold),
+        (Timer t) => _handleNotification());
   }
 
   // When notification is selected.

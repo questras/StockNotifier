@@ -33,3 +33,23 @@ Future<Set<String>> getPreferences() async {
 
   return result;
 }
+
+Future<int> notificationThresholdRead() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getInt('notificationThreshold');
+
+  if (value == null) {
+    final defaultThreshold = 60;
+    prefs.setInt('notificationThreshold', defaultThreshold);
+
+    return defaultThreshold;
+  }
+
+  return value;
+}
+
+void notificationThresholdSave(int value) async {
+  final prefs = await SharedPreferences.getInstance();
+  prefs.setInt('notificationThreshold', value);
+  print('saved $value');
+}
