@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import 'package:stocknotifier/services/stock.dart' as stock;
 import 'package:stocknotifier/services/sharedPreferencesHandler.dart';
@@ -15,8 +16,8 @@ class StockList extends StatefulWidget {
 
 class StockListState extends State<StockList> {
   Future<Map<String, stock.Stock>> _futureStockList;
-  Future<Set<String>> _futurePreferencesKeys;
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  Timer notificationTimer;
 
   @override
   void initState() {
@@ -30,9 +31,15 @@ class StockListState extends State<StockList> {
     flutterLocalNotificationsPlugin.initialize(initializationSettings,
         onSelectNotification: selectNotification);
 
-    // Loading stock prices and user preferences.
-    _futureStockList = stock.fetchStock();
-    _futurePreferencesKeys = getPreferences();
+    // todo: comment -> Show notification every 10 minutes
+    notificationTimer =
+        Timer.periodic(Duration(minutes: 2), (Timer t) => handleNotification());
+  }
+
+  @override
+  void dispose() {
+    notificationTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -50,9 +57,7 @@ class StockListState extends State<StockList> {
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: () {
-              this.setState(() {
-                _futureStockList = stock.fetchStock();
-              });
+              this.setState(() {});
             },
           )
         ],
@@ -62,12 +67,11 @@ class StockListState extends State<StockList> {
   }
 
   FutureBuilder<Map<String, stock.Stock>> createStockList() {
+    _futureStockList = stock.fetchStock();
     return FutureBuilder<Map<String, stock.Stock>>(
       future: _futureStockList,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-//          handleNotification(snapshot.data);
-
           List<Widget> listTiles = new List<Widget>();
 
           for (var name in snapshot.data.keys) {
@@ -91,10 +95,8 @@ class StockListState extends State<StockList> {
     setState(() {
       if (alreadySaved) {
         preferencesRemove(name);
-        _futurePreferencesKeys = getPreferences();
       } else {
         preferencesSave(name, 0.0);
-        _futurePreferencesKeys = getPreferences();
       }
     });
   }
@@ -104,28 +106,31 @@ class StockListState extends State<StockList> {
         context, MaterialPageRoute(builder: (context) => StockFavoriteList()));
   }
 
-  void handleNotification(Map<String, stock.Stock> data) async {
+  void handleNotification() async {
     List<String> satisfyingStocks = List<String>();
+    Map<String, stock.Stock> stockPrices = await stock.fetchStock();
 
     // Send notification if price is satisfying
     Set<String> prefs = await getPreferences();
     for (var key in prefs) {
       double value = await preferencesRead(key);
-      if (data[key].price <= value) {
+      if (stockPrices[key].price <= value) {
         satisfyingStocks.add(key);
       }
     }
 
     if (satisfyingStocks.isNotEmpty) {
-      var message;
-      if (satisfyingStocks.length == 1) {
-        message = satisfyingStocks[0];
-      } else {
-        message = satisfyingStocks[0] + ', ' + satisfyingStocks[1];
-        if (satisfyingStocks.length > 2) {
-          message += ' and more!';
-        }
+      var message = stockPrices[satisfyingStocks[0]].toString();
+
+      if (satisfyingStocks.length > 1) {
+        message += ', ' + stockPrices[satisfyingStocks[1]].toString();
       }
+
+      if (satisfyingStocks.length > 2) {
+        message += ' and more';
+      }
+
+      message += '!';
       showNotification(message);
     }
   }
@@ -149,6 +154,3 @@ class StockListState extends State<StockList> {
         0, 'Stock price lowered!', message, platform);
   }
 }
-
-
-

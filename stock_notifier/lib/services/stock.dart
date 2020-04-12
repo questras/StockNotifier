@@ -7,9 +7,16 @@ class Stock {
   final double price;
 
   Stock({this.name, this.price});
+
+  @override
+  String toString() {
+    return '${this.name}: ${this.price}';
+  }
 }
 
 Future<Map<String, Stock>> fetchStock() async {
+  // todo:
+  print('fetched!');
   final url = 'https://www.bankier.pl/gielda/notowania/akcje';
   final client = http.Client();
   http.Response response = await client.get(url);
