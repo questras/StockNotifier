@@ -46,6 +46,12 @@ class _StockListState extends State<StockList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.settings),
+          onPressed: () {
+
+          },
+        ),
         title: Text('Stock prices'),
         actions: <Widget>[
           IconButton(
